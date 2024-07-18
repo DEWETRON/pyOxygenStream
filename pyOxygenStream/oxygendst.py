@@ -278,7 +278,16 @@ class OxygenStreamReceiver:
         root = ET.fromstring(xml_content)
         if root.tag == "ChannelInfo":
             for child in root:
-                self.scaling_info.append((child[0].attrib['factor'], child[0].attrib['offset']))
+                factor = child[0].get('factor')
+                offset = child[0].get('offset')
+
+                if factor == None:
+                    factor = 1
+
+                if offset == None:
+                    offset = 0
+
+                self.scaling_info.append((factor, offset))
 
     def processSyncFixed(self, packet, pos):
         """ Read synchronous samples from packet
@@ -329,10 +338,14 @@ class OxygenStreamReceiver:
         """ Read data from packet
         """
         dtype = DT_DATA_TYPE[sub_packet.channel_data_type]
+        dim = sub_packet.channel_dimension
         num_samples = sub_packet.number_samples
         if dtype:
             if sample_type == SBT_SYNC_FIXED and num_samples > 0:
-                data = self.readSamplesSync(packet, pos, num_samples, dtype)
+                if dim == 1:
+                    data = self.readSamplesSync(packet, pos, num_samples, dtype)
+                else:
+                    data = self.readArraySync(packet, pos, dim, num_samples, dtype)
 
             elif sample_type == SBT_ASYNC_FIXED and sub_packet.number_samples > 0:
                 data = self.readSamplesAsync(packet, pos, num_samples, dtype)
@@ -356,7 +369,7 @@ class OxygenStreamReceiver:
         if sample_type == 'int24':
             data = np.frombuffer(packet, dtype="uint8",  offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples*3)
             data = data[2::3].astype('int8')*2**16+data[1::3]*2**8+data[::3]
-        
+
         elif sample_type == 'uint24':
             data = np.frombuffer(packet, dtype="uint8",  offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples*3)
             data = data[2::3]*2**16+data[1::3]*2**8+data[::3]
@@ -365,6 +378,19 @@ class OxygenStreamReceiver:
             data = np.frombuffer(packet, dtype=sample_type, offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples)
 
         return data.astype('float64') * f + o
+
+    def readArraySync(self, packet, pos, dim, num_samples, sample_type):
+
+        data = []
+        cur = pos + DT_SYNC_FIXED_SIZE
+
+        if sample_type == 'complex64':
+            for i in range(0, num_samples):
+                data.append(np.frombuffer(packet, dtype="complex64",  offset=cur, count=dim))
+                cur += dim * np.dtype(np.complex64).itemsize
+
+        return data
+
 
     def readSamplesAsync(self, packet, pos, num_samples, sample_type):
         data = np.frombuffer(packet, dtype="uint64,"+sample_type,

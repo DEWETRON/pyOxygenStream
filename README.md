@@ -27,9 +27,9 @@ or
 
 **For technical questions please contact:**
 
-Michael Oberhofer 
+Thomas Kastner 
 
-michael.oberhofer@dewetron.com
+thomas.kastner@dewetron.com
 
 Gunther Laure
 

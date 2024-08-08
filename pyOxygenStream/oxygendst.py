@@ -384,10 +384,9 @@ class OxygenStreamReceiver:
         data = []
         cur = pos + DT_SYNC_FIXED_SIZE
 
-        if sample_type == 'complex64':
-            for i in range(0, num_samples):
-                data.append(np.frombuffer(packet, dtype="complex64",  offset=cur, count=dim))
-                cur += dim * np.dtype(np.complex64).itemsize
+        for i in range(0, num_samples):
+            data.append(np.frombuffer(packet, dtype=sample_type, offset=cur, count=dim))
+            cur += dim * np.dtype(sample_type).itemsize
 
         return data
 

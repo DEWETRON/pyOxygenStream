@@ -348,7 +348,10 @@ class OxygenStreamReceiver:
                     data = self.readArraySync(packet, pos, dim, num_samples, dtype)
 
             elif sample_type == SBT_ASYNC_FIXED and sub_packet.number_samples > 0:
-                data = self.readSamplesAsync(packet, pos, num_samples, dtype)
+                if dim == 1:
+                    data = self.readSamplesAsync(packet, pos, num_samples, dtype)
+                else:
+                    data = self.readArrayAsync(packet, pos, dim, num_samples, dtype)
             else:
                 logging.warning("No or invalid data received.")
                 data = np.empty(0)
@@ -394,6 +397,21 @@ class OxygenStreamReceiver:
     def readSamplesAsync(self, packet, pos, num_samples, sample_type):
         data = np.frombuffer(packet, dtype="uint64,"+sample_type,
                              offset=pos+DT_ASYNC_FIXED_SIZE, count=num_samples)
+
+        return data
+
+    def readArrayAsync(self, packet, pos, dim, num_samples, sample_type):
+
+        data = []
+        cur = pos + DT_ASYNC_FIXED_SIZE
+
+        for i in range(0, num_samples):
+            ts = np.frombuffer(packet, dtype="uint64", offset=cur, count=1)[0]
+            cur += np.dtype('uint64').itemsize
+            samples = list(np.frombuffer(packet, dtype=sample_type, offset=cur, count=dim))
+            samples.insert(0, ts)
+            data.append(samples)
+            cur += dim * np.dtype(sample_type).itemsize
 
         return data
 

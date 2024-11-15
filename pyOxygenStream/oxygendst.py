@@ -364,25 +364,25 @@ class OxygenStreamReceiver:
 
         return data
 
-    def readSamplesSync(self, packet, pos, num_samples, sample_type):
+    def readSamplesSync(self, packet, pos: int, num_samples: int, sample_type: str):
 
         f = float(self.scaling_info[self.actual_channel_idx][0])
         o = float(self.scaling_info[self.actual_channel_idx][1])
 
         if sample_type == 'int24':
             data = np.frombuffer(packet, dtype="uint8",  offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples*3)
-            data = data[2::3].astype('int8')*2**16+data[1::3]*2**8+data[::3]
+            data = data[2::3].astype('int8').astype('int32')*2**16+data[1::3].astype('int32')*2**8+data[::3]
 
         elif sample_type == 'uint24':
             data = np.frombuffer(packet, dtype="uint8",  offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples*3)
-            data = data[2::3]*2**16+data[1::3]*2**8+data[::3]
+            data = data[2::3].astype('int32')*2**16+data[1::3].astype('int32')*2**8+data[::3]
 
         else:
             data = np.frombuffer(packet, dtype=sample_type, offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples)
 
         return data.astype('float64') * f + o
 
-    def readArraySync(self, packet, pos, dim, num_samples, sample_type):
+    def readArraySync(self, packet, pos: int, dim: int, num_samples: int, sample_type: str):
 
         data = []
         cur = pos + DT_SYNC_FIXED_SIZE

@@ -151,9 +151,10 @@ class DtChannelAsyncFixed:
 class OxygenStreamReceiver:
     """ Oxygen Stream Receiver Object to receive one stream
     """
-    def __init__(self):
+    def __init__(self, timeout = 5.0):
+        self.timeout = timeout
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.settimeout(5)
+        self.sock.settimeout(timeout)
         self.struct_header = struct.Struct(DT_PACKET_HEADER_FMT)
         self.struct_subpackage_header = struct.Struct(DT_SUBPACKET_HEADER_FMT)
         self.struct_packet_info = struct.Struct(DT_PACKET_INFO_FMT)
@@ -170,7 +171,7 @@ class OxygenStreamReceiver:
         try:
             if self.sock.fileno() == -1:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.sock.settimeout(5)
+                self.sock.settimeout(self.timeout)
             self.sock.connect((dt_server, port))
         except socket.gaierror as err:
             logging.error("Invalid address: {}".format(err))

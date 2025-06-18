@@ -4,7 +4,14 @@ pyOxygenStream is a Python wrapper for DataStream feature from Dewetron Oxygen M
 A valid license must be installed on OXYGEN instance. Otherwise, the stream may be stop after a short time.
 
 # Installation
+## Directly from GitHub
+You can install the Dewetron Oxygen SCPI and Datastream packages directly using
+```bash
+pip install git+https://github.com/DEWETRON/pyOxygenSCPI.git
+pip install git+https://github.com/DEWETRON/pyOxygenStream.git
+```
 
+## From local repository
 1. Clone GIT repository \
 `git clone https://github.com/DEWETRON/pyOxygenStream.git`
 
@@ -41,7 +48,7 @@ gunther.laure@dewetron.com
 # License
 MIT License
 
-Copyright (c) 2022 DEWETRON
+Copyright (c) 2022-2025 DEWETRON
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

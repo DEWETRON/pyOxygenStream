@@ -151,9 +151,10 @@ class DtChannelAsyncFixed:
 class OxygenStreamReceiver:
     """ Oxygen Stream Receiver Object to receive one stream
     """
-    def __init__(self):
+    def __init__(self, timeout = 5.0):
+        self.timeout = timeout
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.settimeout(5)
+        self.sock.settimeout(timeout)
         self.struct_header = struct.Struct(DT_PACKET_HEADER_FMT)
         self.struct_subpackage_header = struct.Struct(DT_SUBPACKET_HEADER_FMT)
         self.struct_packet_info = struct.Struct(DT_PACKET_INFO_FMT)
@@ -165,12 +166,12 @@ class OxygenStreamReceiver:
         self.actual_channel_idx = 0
 
     def connectTo(self, dt_server, port):
-        """ Connect to Oxygen on dt_server:port an read welcome message
+        """ Connect to Oxygen on dt_server:port and read welcome message
         """
         try:
             if self.sock.fileno() == -1:
                 self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.sock.settimeout(5)
+                self.sock.settimeout(self.timeout)
             self.sock.connect((dt_server, port))
         except socket.gaierror as err:
             logging.error("Invalid address: {}".format(err))
@@ -184,7 +185,7 @@ class OxygenStreamReceiver:
         if bc == 0:
             logging.error("Could not read welcome message")
             return None
-        logging.debug("Data stream product name: {:s}".format(welcome_buffer.decode()))
+        logging.debug("Data stream product name: %s", welcome_buffer.decode())
         return True
 
     def readPacket(self):
@@ -246,7 +247,7 @@ class OxygenStreamReceiver:
                 self.processAsyncFixed(packet, pos+DT_SUBPACKET_HEADER_SIZE)
             pos += sub_packet_size
 
-    def processPacketInfo(self, packet, pos):
+    def processPacketInfo(self, packet, pos: int):
         """ Read packet information
         """
         (self.packet_info.protocol_version,
@@ -256,12 +257,12 @@ class OxygenStreamReceiver:
          self.packet_info.seed,
          self.packet_info.number_of_subpackets) = self.struct_packet_info.unpack_from(packet, pos)
         logging.debug("PacketInfo:")
-        logging.debug("  Version:           {:0x}".format(self.packet_info.protocol_version))
-        logging.debug("  Stream ID:         {:d} ".format(self.packet_info.stream_id))
-        logging.debug("  Seq Number:        {:d} ".format(self.packet_info.sequence_number))
-        logging.debug("  Stream status:     {:0x}".format(self.packet_info.stream_status))
-        logging.debug("  Stream seed:       {:x} ".format(self.packet_info.seed))
-        logging.debug("  Num sub packets:   {:d} ".format(self.packet_info.number_of_subpackets))
+        logging.debug("  Version:           %0x", self.packet_info.protocol_version)
+        logging.debug("  Stream ID:         %d", self.packet_info.stream_id)
+        logging.debug("  Seq Number:        %d", self.packet_info.sequence_number)
+        logging.debug("  Stream status:     %0x", self.packet_info.stream_status)
+        logging.debug("  Stream seed:       %x", self.packet_info.seed)
+        logging.debug("  Num sub packets:   %d", self.packet_info.number_of_subpackets)
 
     def processXmlConfig(self, packet, pos, size):
         """ Read one xml subpackage and add it to the xml list
@@ -272,7 +273,7 @@ class OxygenStreamReceiver:
         self.packet_xml.append(sub_packet)
         self.parseScalingXML(sub_packet.xml_content)
         logging.debug("XMLPacket:")
-        logging.debug("  xml_content:     {:s}".format(sub_packet.xml_content))
+        logging.debug("  xml_content:     %s", sub_packet.xml_content)
 
     def parseScalingXML(self, xml_content):
         root = ET.fromstring(xml_content)
@@ -303,13 +304,13 @@ class OxygenStreamReceiver:
         data = np.c_[timeStamps, data]
         self.channelValue.append(data)
         logging.debug("DtChannelSyncFixed:")
-        logging.debug("  channel idx:         {:d}".format(self.actual_channel_idx))
-        logging.debug("  channel_data_type:   {:d}".format(sub_packet.channel_data_type))
-        logging.debug("  channel_dimension:   {:d}".format(sub_packet.channel_dimension))
-        logging.debug("  number_samples:      {:d}".format(sub_packet.number_samples))
-        logging.debug("  timestamp:           {:d}".format(sub_packet.timestamp))
-        logging.debug("  timebase_frequency:  {:f}".format(sub_packet.timebase_frequency))
-        logging.debug("  first 10 samples:    {:s}".format(np.array2string(data[:10])))
+        logging.debug("  channel idx:         %d", self.actual_channel_idx)
+        logging.debug("  channel_data_type:   %d", sub_packet.channel_data_type)
+        logging.debug("  channel_dimension:   %d", sub_packet.channel_dimension)
+        logging.debug("  number_samples:      %d", sub_packet.number_samples)
+        logging.debug("  timestamp:           %d", sub_packet.timestamp)
+        logging.debug("  timebase_frequency:  %f", sub_packet.timebase_frequency)
+        logging.debug("  first 10 samples:    %s", np.array2string(data[:10]))
         self.actual_channel_idx += 1
 
     def processAsyncFixed(self, packet, pos):
@@ -326,12 +327,12 @@ class OxygenStreamReceiver:
             data = np.c_[timeStamps, data['f1']]
         self.channelValue.append(data)
         logging.debug("DtChannelAsyncFixed:")
-        logging.debug("  channel idx:         {:d}".format(self.actual_channel_idx))
-        logging.debug("  channel_data_type:   {:d}".format(sub_packet.channel_data_type))
-        logging.debug("  channel_dimension:   {:d}".format(sub_packet.channel_dimension))
-        logging.debug("  number_samples:      {:d}".format(sub_packet.number_samples))
-        logging.debug("  timebase_frequency:  {:f}".format(sub_packet.timebase_frequency))
-        logging.debug("  first 10 samples:    {:s}".format(np.array2string(data[:10])))
+        logging.debug("  channel idx:         %d", self.actual_channel_idx)
+        logging.debug("  channel_data_type:   %d", sub_packet.channel_data_type)
+        logging.debug("  channel_dimension:   %d", sub_packet.channel_dimension)
+        logging.debug("  number_samples:      %d", sub_packet.number_samples)
+        logging.debug("  timebase_frequency:  %f", sub_packet.timebase_frequency)
+        logging.debug("  first 10 samples:    %s", np.array2string(data[:10]))
         self.actual_channel_idx += 1
 
     def readSamples(self, packet, sub_packet, pos, sample_type):
@@ -364,25 +365,25 @@ class OxygenStreamReceiver:
 
         return data
 
-    def readSamplesSync(self, packet, pos, num_samples, sample_type):
+    def readSamplesSync(self, packet, pos: int, num_samples: int, sample_type: str):
 
         f = float(self.scaling_info[self.actual_channel_idx][0])
         o = float(self.scaling_info[self.actual_channel_idx][1])
 
         if sample_type == 'int24':
             data = np.frombuffer(packet, dtype="uint8",  offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples*3)
-            data = data[2::3].astype('int8')*2**16+data[1::3]*2**8+data[::3]
+            data = data[2::3].astype('int8').astype('int32')*2**16+data[1::3].astype('int32')*2**8+data[::3]
 
         elif sample_type == 'uint24':
             data = np.frombuffer(packet, dtype="uint8",  offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples*3)
-            data = data[2::3]*2**16+data[1::3]*2**8+data[::3]
+            data = data[2::3].astype('int32')*2**16+data[1::3].astype('int32')*2**8+data[::3]
 
         else:
             data = np.frombuffer(packet, dtype=sample_type, offset=pos+DT_SYNC_FIXED_SIZE, count=num_samples)
 
         return data.astype('float64') * f + o
 
-    def readArraySync(self, packet, pos, dim, num_samples, sample_type):
+    def readArraySync(self, packet, pos: int, dim: int, num_samples: int, sample_type: str):
 
         data = []
         cur = pos + DT_SYNC_FIXED_SIZE

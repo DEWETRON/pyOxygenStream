@@ -18,12 +18,15 @@ stream_port = 10005
 measurementDevice = pyOxygenSCPI.OxygenSCPI(ip_addr, scpi_port)
 if not measurementDevice.connect():
     sys.exit()
-print(f"Connected via SCPI to {ip_addr:s}:{scpi_port:d}")
+print(f"Connected via SCPI to {ip_addr:s}:{scpi_port:d} identified as {measurementDevice.getIdn()}")
 
 # Configure Data Stream
 measurementDevice.DataStream.reset()
-measurementDevice.DataStream.setItems(["AI 1/1 Sim", "AI 1/2 Sim"])
-print("DST Items Set:", measurementDevice.DataStream.ChannelList)
+if len(measurementDevice.DataStream.ChannelList) > 0:
+    print("DST Items Set:", measurementDevice.DataStream.ChannelList)
+else:
+    errs = measurementDevice.getErrorAll()
+    print("DST Error(s): ", errs.decode())
 measurementDevice.DataStream.setTcpPort(stream_port)
 measurementDevice.DataStream.init()
 
@@ -65,12 +68,12 @@ while time.time() < (start_time + time_to_stream):
             if data_pkg[idx].size > 0:
                 data[chName].append(data_pkg[idx])
             # Do additional things here for live processing of received data
-    
+
     # Log Number of received packages every second
     if time.time() > (last_logged_time + 1):
-        print(f"Streaming... {pkg_count:d} packages rceived")
+        print(f"Streaming... {pkg_count:d} packages received")
         last_logged_time = time.time()
-        
+
 # Stop Streaming
 measurementDevice.DataStream.stop()
 print("Stream stopping...")

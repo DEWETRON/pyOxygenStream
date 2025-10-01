@@ -164,6 +164,7 @@ class OxygenStreamReceiver:
         self.struct_sync_fixed = struct.Struct(DT_SYNC_FIXED_FMT)
         self.struct_async_fixed = struct.Struct(DT_ASYNC_FIXED_FMT)
         self.actual_channel_idx = 0
+        self.file = None
 
     def connectTo(self, dt_server, port):
         """ Connect to Oxygen on dt_server:port and read welcome message
@@ -187,6 +188,18 @@ class OxygenStreamReceiver:
             return None
         logging.debug("Data stream product name: %s", welcome_buffer.decode())
         return True
+
+    def openFile(self, file_path):
+        try:
+            self.file = open(file_path, "rb")
+        except OSError as e:
+            logging.error(f"Failed to open file {file_path}: {e}")
+            self.file = None
+
+    def closeFile(self):
+        if self.file:
+            self.file.close()
+            self.file = None
 
     def readPacket(self):
         """ Read one packet and process it afterwards
@@ -217,6 +230,46 @@ class OxygenStreamReceiver:
         packet_size -= DT_PACKET_HEADER_SIZE
         #packet_data = bytearray(packet_size)
         packet_data = recvFixedSize(self.sock, packet_size)
+        if len(packet_data) != packet_size:
+            logging.error("Could not read all packet data")
+            return False
+        self.channelValue = []
+        self.processPacket(packet_data)
+        return self.channelValue
+
+    def readFromFile(self):
+        if self.file == None:
+            logging.error("No file opened for reading")
+            return False
+        # Read packet header from file
+        packet_header_buffer = self.file.read(DT_TOKEN_SIZE)
+        if not packet_header_buffer:
+            return False
+        packet_size_buffer = bytearray(DT_PACKET_HEADER_SIZE - DT_TOKEN_SIZE)
+        # Search for Packet Start Token
+        while packet_header_buffer != DT_START_TOKEN:
+            logging.error("Invalid start packet token: " + str(packet_header_buffer))
+            try:
+                packet_header_buffer += self.file.read(1)
+            except EOFError:
+                logging.warning("No more data available")
+                return False
+            packet_header_buffer = packet_header_buffer[1:]
+        # Read Packet Size
+        try:
+            packet_size_buffer = self.file.read(DT_PACKET_HEADER_SIZE - DT_TOKEN_SIZE)
+        except EOFError:
+            logging.warning("No more data available")
+            return False
+        # if (DT_PACKET_HEADER_SIZE - DT_TOKEN_SIZE) != bc:
+        #     logging.error("Could not read packet size")
+        #     return False
+        packet_size = int.from_bytes(packet_size_buffer, byteorder='little', signed=False)
+        # Read rest of packet
+        packet_size -= DT_PACKET_HEADER_SIZE
+        #packet_data = bytearray(packet_size)
+        # packet_data = recvFixedSize(self.sock, packet_size)
+        packet_data = self.file.read(packet_size)
         if len(packet_data) != packet_size:
             logging.error("Could not read all packet data")
             return False

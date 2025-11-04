@@ -20,15 +20,32 @@ if not measurementDevice.connect():
     sys.exit()
 print(f"Connected via SCPI to {ip_addr:s}:{scpi_port:d} identified as {measurementDevice.getIdn()}")
 
+# Get all available channels from Oxygen
+oxy_channels = measurementDevice.getChannelList()
+
+# Get all analog channels from the first card
+stream_channels = []
+channel_filter = "AI 1"
+for ch in oxy_channels:
+    ch_name = ch[1]
+    if channel_filter in ch_name:
+        stream_channels.append(ch_name)
+
+# Clear error queue
+measurementDevice.getErrorAll()
+
 # Configure Data Stream
 measurementDevice.DataStream.reset()
+measurementDevice.DataStream.setTcpPort(stream_port)
+measurementDevice.DataStream.setItems(channelNames=stream_channels)
+measurementDevice.DataStream.init()
+
+
 if len(measurementDevice.DataStream.ChannelList) > 0:
     print("DST Items Set:", measurementDevice.DataStream.ChannelList)
 else:
     errs = measurementDevice.getErrorAll()
     print("DST Error(s): ", errs.decode())
-measurementDevice.DataStream.setTcpPort(stream_port)
-measurementDevice.DataStream.init()
 
 # Create Stream Receiver Instance
 dt_stream = pyOxygenStream.OxygenStreamReceiver()
